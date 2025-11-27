@@ -193,6 +193,8 @@ The plugin uses:
 - Supports scanning multiple pages
 - Automatic perspective correction
 
+**Note:** Croatian language OCR support requires iOS 16.0 or later. On iOS 13-15, English OCR is used as a fallback.
+
 ## Example App
 
 See the [example](example/) directory for a complete demo application showing all plugin capabilities.

@@ -131,11 +131,17 @@ class ReceiptParser {
             year += 2000;
           }
 
-          // For English format, swap day and month if month > 12
-          if (language == 'en' && month > 12 && day <= 12) {
+          // Handle ambiguous date formats (MM/DD/YYYY vs DD/MM/YYYY)
+          // If month > 12, it's likely DD/MM format, so swap
+          if (month > 12 && day <= 12) {
             final temp = day;
             day = month;
             month = temp;
+          }
+          
+          // Validate month is within range
+          if (month < 1 || month > 12) {
+            continue;
           }
 
           var hour = 0;
@@ -213,7 +219,8 @@ class ReceiptParser {
             name: name,
             quantity: quantity,
             totalPrice: price,
-            unitPrice: quantity > 0 ? price / quantity : null,
+            // Use threshold to avoid division by very small numbers
+            unitPrice: quantity >= 0.001 ? price / quantity : null,
           ));
           continue;
         }
@@ -230,7 +237,8 @@ class ReceiptParser {
             name: name,
             quantity: quantity,
             totalPrice: price,
-            unitPrice: quantity > 0 ? price / quantity : null,
+            // Use threshold to avoid division by very small numbers
+            unitPrice: quantity >= 0.001 ? price / quantity : null,
           ));
           continue;
         }

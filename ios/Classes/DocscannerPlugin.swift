@@ -208,10 +208,13 @@ public class DocscannerPlugin: NSObject, FlutterPlugin, VNDocumentCameraViewCont
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
         
-        // Support Croatian and English
+        // Support Croatian (iOS 16+) and English
+        // Note: Croatian language support requires iOS 16.0+
+        // On older iOS versions, English OCR is used as fallback
         if #available(iOS 16.0, *) {
             request.recognitionLanguages = ["hr-HR", "en-US"]
         } else {
+            // Fallback to English only on iOS 13-15
             request.recognitionLanguages = ["en-US"]
         }
         

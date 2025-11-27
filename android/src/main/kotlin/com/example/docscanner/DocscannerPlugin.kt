@@ -262,8 +262,13 @@ class DocscannerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     private fun performOcrOnImages(imagePaths: List<String>, result: Result, callback: (String) -> Unit) {
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        val textResults = mutableListOf<String>()
-        var processedCount = 0
+        // Use synchronized list to prevent race conditions with concurrent callbacks
+        val textResults = java.util.Collections.synchronizedList(mutableListOf<String>())
+        // Initialize with empty strings for each position to maintain order
+        for (i in imagePaths.indices) {
+            textResults.add("")
+        }
+        var processedCount = java.util.concurrent.atomic.AtomicInteger(0)
 
         val currentActivity = activity
         if (currentActivity == null) {
@@ -271,31 +276,28 @@ class DocscannerPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             return
         }
 
-        for (imagePath in imagePaths) {
+        for ((index, imagePath) in imagePaths.withIndex()) {
             try {
                 val file = File(imagePath)
                 val inputImage = InputImage.fromFilePath(currentActivity, Uri.fromFile(file))
 
                 recognizer.process(inputImage)
                     .addOnSuccessListener { visionText ->
-                        textResults.add(visionText.text)
-                        processedCount++
-                        if (processedCount == imagePaths.size) {
+                        textResults[index] = visionText.text
+                        if (processedCount.incrementAndGet() == imagePaths.size) {
                             callback(textResults.joinToString("\n\n---PAGE BREAK---\n\n"))
                         }
                     }
                     .addOnFailureListener { e ->
                         Log.e(TAG, "OCR failed for $imagePath", e)
-                        textResults.add("")
-                        processedCount++
-                        if (processedCount == imagePaths.size) {
+                        textResults[index] = ""
+                        if (processedCount.incrementAndGet() == imagePaths.size) {
                             callback(textResults.joinToString("\n\n---PAGE BREAK---\n\n"))
                         }
                     }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to process image for OCR", e)
-                processedCount++
-                if (processedCount == imagePaths.size) {
+                if (processedCount.incrementAndGet() == imagePaths.size) {
                     callback(textResults.joinToString("\n\n---PAGE BREAK---\n\n"))
                 }
             }
